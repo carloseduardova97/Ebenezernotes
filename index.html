@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ebenezer Notes">
+<title>Ebenezer Notes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#F2F2F7;--bg2:#FFFFFF;--sb:#F2F2F7;--border:#D1D1D6;
+  --text:#1C1C1E;--text2:#636366;--text3:#AEAEB2;
+  --accent:#007AFF;--gold:#B8860B;--gold-bg:#FFF8E7;--gold-border:#D4AF37;
+  --line:#C8CDD8;--margin-line:#FFCDD2;
+  --shadow:0 1px 3px rgba(0,0,0,.10),0 4px 14px rgba(0,0,0,.07);
+  --r:12px;--hdr:52px;--sbw:260px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;user-select:none;-webkit-user-select:none}
+.screen{display:none;width:100%;height:100dvh;flex-direction:column}
+.screen.active{display:flex}
+
+/* HOME */
+#home{background:var(--bg)}
+.home-hdr{background:rgba(242,242,247,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.home-hdr h1{font-size:26px;font-weight:700;letter-spacing:-.5px}
+.home-hdr h1 span{color:var(--accent)}
+.btn-new{background:var(--accent);color:#fff;border:none;border-radius:20px;padding:8px 16px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn-new:active{opacity:.7}
+.grid{flex:1;overflow-y:auto;padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:14px;align-content:start}
+.bcard{background:var(--bg2);border-radius:var(--r);box-shadow:var(--shadow);cursor:pointer;transition:transform .15s;overflow:hidden;position:relative}
+.bcard:active{transform:scale(.97)}
+.bspine{height:8px}
+.bbody{padding:12px 14px 14px}
+.btitle{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.bmeta{font-size:11px;color:var(--text3)}
+.bdots{display:flex;gap:3px;margin-top:8px}
+.bdot{width:10px;height:10px;border-radius:50%}
+.bdel{position:absolute;top:12px;right:8px;background:none;border:none;color:var(--text3);font-size:17px;cursor:pointer;padding:4px;z-index:2}
+.bible-badge{position:absolute;top:12px;left:12px;background:var(--gold);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;letter-spacing:.4px}
+
+/* APP SCREEN */
+#app{flex-direction:row}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:9}
+.sb-overlay.open{display:block}
+.sidebar{width:var(--sbw);min-width:var(--sbw);background:var(--sb);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100dvh;transition:transform .25s cubic-bezier(.4,0,.2,1);z-index:10}
+.sb-hdr{padding:14px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.btn-back{background:none;border:none;color:var(--accent);font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+.bname-sb{font-size:14px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seclist{flex:1;overflow-y:auto;padding:6px 0}
+.secitem{display:flex;align-items:center;gap:9px;padding:9px 14px;border-radius:8px;margin:1px 8px;cursor:pointer;transition:background .1s;position:relative}
+.secitem:hover{background:rgba(0,0,0,.04)}
+.secitem.active{background:rgba(0,122,255,.10)}
+.secdot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.secname{font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.secitem.active .secname{font-weight:600}
+.secpg{font-size:10px;color:var(--text3);flex-shrink:0}
+.secdel{background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;opacity:0}
+.secitem:hover .secdel{opacity:1}
+.testament-hdr{padding:8px 16px 4px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px}
+.sb-actions{padding:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
+.btn-addsec{background:none;border:1.5px dashed var(--border);border-radius:8px;padding:9px;font-size:12px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
+.btn-addsec:hover{border-color:var(--accent);color:var(--accent)}
+.btn-export{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+
+/* MAIN */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg2)}
+.note-hdr{height:var(--hdr);background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0}
+.secbar{width:4px;height:28px;border-radius:2px;flex-shrink:0}
+.notetitle{font-size:15px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notemeta{font-size:11px;color:var(--text3);white-space:nowrap}
+.btn-menu{display:none;background:none;border:none;color:var(--accent);font-size:22px;cursor:pointer;padding:4px 8px}
+
+/* CHAPTER BAR */
+.ch-bar{background:var(--gold-bg);border-bottom:1px solid var(--gold-border);padding:6px 10px;display:none;flex-wrap:wrap;gap:4px;overflow-y:auto;max-height:82px;flex-shrink:0}
+.ch-bar.on{display:flex}
+.chbtn{padding:3px 7px;border-radius:6px;font-size:11px;font-weight:500;border:1px solid var(--gold-border);background:none;color:var(--gold);cursor:pointer}
+.chbtn:hover,.chbtn.active{background:var(--gold);color:#fff}
+
+/* TOOLBAR */
+.toolbar{background:var(--bg);border-bottom:1px solid var(--border);padding:5px 10px;display:flex;align-items:center;gap:3px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.toolbar::-webkit-scrollbar{display:none}
+.tbtn{background:none;border:none;border-radius:8px;padding:6px 8px;cursor:pointer;font-size:15px;color:var(--text2);white-space:nowrap;display:flex;align-items:center;flex-shrink:0}
+.tbtn:hover{background:rgba(0,0,0,.06)}
+.tbtn.active{background:rgba(0,122,255,.12);color:var(--accent)}
+.tsep{width:1px;height:22px;background:var(--border);margin:0 3px;flex-shrink:0}
+.csw{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer;flex-shrink:0}
+.csw:hover{transform:scale(1.15)}
+.csw.active{border-color:var(--text)}
+.strokesl{width:60px;accent-color:var(--accent);flex-shrink:0}
+.pgnav{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0}
+.pgnav button{background:none;border:none;color:var(--accent);font-size:17px;cursor:pointer;padding:4px 5px;border-radius:6px}
+.pgnav button:disabled{color:var(--text3)}
+.pgind{font-size:11px;color:var(--text2);min-width:44px;text-align:center}
+.btn-addpg{background:none;border:none;color:var(--accent);font-size:17px;cursor:pointer;padding:4px 7px;border-radius:6px}
+
+/* ══ BIBLE HORIZONTAL LAYOUT ══ */
+.bible-layout{flex:1;display:flex;flex-direction:row;overflow:hidden}
+
+/* Left: Bible text */
+.bible-left{
+  width:50%;
+  border-right:2px solid var(--gold-border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  background:var(--gold-bg);
+  flex-shrink:0;
+}
+.bible-left-hdr{
+  padding:10px 14px 8px;
+  background:var(--gold-bg);
+  border-bottom:1px solid var(--gold-border);
+  flex-shrink:0;
+}
+.bible-left-hdr h3{font-size:12px;font-weight:700;color:var(--gold)}
+.bible-scroll{flex:1;overflow-y:auto;padding:10px 14px 16px}
+.bible-verse{font-size:13px;line-height:1.8;color:var(--text);user-select:text;-webkit-user-select:text}
+.bible-verse sup{font-size:9px;color:var(--gold);font-weight:700;margin-right:1px}
+.bible-loading{color:var(--text3);font-size:12px;font-style:italic;padding:10px 0}
+.bible-offline{background:#FFF3CD;border:1px solid #FFCA28;border-radius:8px;padding:12px;font-size:12px;color:#795548;line-height:1.5;margin-top:8px}
+
+/* Right: Notes canvas */
+.bible-right{
+  flex:1;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  background:#fff;
+}
+.bible-right-hdr{
+  padding:7px 12px;
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+  font-size:11px;font-weight:600;color:var(--text2);
+  flex-shrink:0;
+  display:flex;align-items:center;gap:6px;
+}
+.notes-canvas-wrap{flex:1;position:relative;overflow:hidden}
+
+/* Regular canvas wrap */
+.canvas-wrap{flex:1;position:relative;overflow:hidden;background:#fff}
+
+/* Canvas */
+.note-canvas{position:absolute;top:0;left:0;touch-action:none;cursor:crosshair}
+.note-canvas.text-mode{cursor:text}
+
+/* PAGE TABS */
+.pgtabs{display:flex;gap:3px;padding:5px 10px;background:var(--bg);border-top:1px solid var(--border);overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.pgtabs::-webkit-scrollbar{display:none}
+.pgtab{padding:3px 10px;border-radius:6px;font-size:11px;color:var(--text2);cursor:pointer;background:none;border:none;white-space:nowrap}
+.pgtab:hover{background:rgba(0,0,0,.06)}
+.pgtab.active{background:var(--bg2);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+/* MODALS */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.mo.open{display:flex}
+.modal{background:var(--bg2);border-radius:18px;padding:22px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:su .2s ease}
+@keyframes su{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal h2{font-size:18px;font-weight:700;margin-bottom:14px}
+.modal label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;margin-top:12px}
+.modal label:first-of-type{margin-top:0}
+.modal input,.modal select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;background:var(--bg);color:var(--text);outline:none}
+.modal input:focus,.modal select:focus{border-color:var(--accent)}
+.crow{display:flex;gap:9px;flex-wrap:wrap;margin-top:4px}
+.mcol{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent}
+.mcol:hover{transform:scale(1.1)}
+.mcol.sel{border-color:var(--text)}
+.mbtns{display:flex;gap:10px;margin-top:18px}
+.btn-cancel{flex:1;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:none;font-size:15px;font-weight:500;cursor:pointer;color:var(--text)}
+.btn-ok{flex:1;padding:11px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+.exp-prog{text-align:center;padding:10px 0}
+.exp-prog p{color:var(--text2);font-size:13px;margin-top:8px}
+.spin{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;margin:0 auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(16px);background:rgba(28,28,30,.92);color:#fff;padding:9px 18px;border-radius:18px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--text3)}
+.empty .icon{font-size:48px}
+
+@media(max-width:900px){
+  :root{--sbw:245px}
+  .btn-menu{display:block}
+  .sidebar{position:fixed;top:0;left:0;height:100dvh;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  /* On small screens bible layout stacks vertically */
+  .bible-layout{flex-direction:column}
+  .bible-left{width:100%;height:50%;border-right:none;border-bottom:2px solid var(--gold-border)}
+  .bible-right{height:50%}
+}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="home-hdr">
+    <h1>Ebenezer <span>Notes</span></h1>
+    <button class="btn-new" onclick="openNewBinderModal()">+ Novo Fichário</button>
+  </div>
+  <div class="grid" id="bindersGrid"></div>
+</div>
+
+<!-- APP -->
+<div id="app" class="screen">
+  <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
+
+  <div class="sidebar" id="sidebar">
+    <div class="sb-hdr">
+      <button class="btn-back" onclick="goHome()">‹ Início</button>
+      <span class="bname-sb" id="sbName"></span>
+    </div>
+    <div class="seclist" id="secList"></div>
+    <div class="sb-actions">
+      <button class="btn-addsec" onclick="openNewSecModal()">+ Adicionar Secção</button>
+      <button class="btn-export" onclick="exportPDF()">⬇ Exportar PDF</button>
+    </div>
+  </div>
+
+  <div class="main-area">
+    <div class="note-hdr">
+      <button class="btn-menu" onclick="toggleSidebar()">☰</button>
+      <div class="secbar" id="secBar"></div>
+      <span class="notetitle" id="noteTitle">—</span>
+      <span class="notemeta" id="noteMeta"></span>
+    </div>
+
+    <!-- Chapter bar (Bible only) -->
+    <div class="ch-bar" id="chBar"></div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button class="tbtn active" id="toolPen"       onclick="setTool('pen')">✏️</button>
+      <button class="tbtn"        id="toolHighlight" onclick="setTool('highlight')">🖊</button>
+      <button class="tbtn"        id="toolEraser"    onclick="setTool('eraser')">⬜</button>
+      <button class="tbtn"        id="toolText"      onclick="setTool('text')">T</button>
+      <div class="tsep"></div>
+      <div class="csw active" style="background:#1C1C1E" data-color="#1C1C1E" onclick="setColor(this)"></div>
+      <div class="csw" style="background:#007AFF" data-color="#007AFF" onclick="setColor(this)"></div>
+      <div class="csw" style="background:#FF3B30" data-color="#FF3B30" onclick="setColor(this)"></div>
+      <div class="csw" style="background:#34C759" data-color="#34C759" onclick="setColor(this)"></div>
+      <div class="csw" style="background:#FF9500" data-color="#FF9500" onclick="setColor(this)"></div>
+      <div class="csw" style="background:#AF52DE" data-color="#AF52DE" onclick="setColor(this)"></div>
+      <div class="csw" style="background:#B8860B" data-color="#B8860B" onclick="setColor(this)"></div>
+      <div class="tsep"></div>
+      <input type="range" class="strokesl" id="strokeSl" min="1" max="20" value="2" oninput="strokeSize=+this.value">
+      <div class="tsep"></div>
+      <button class="tbtn" onclick="undoStroke()">↩</button>
+      <button class="tbtn" onclick="clearPage()">🗑</button>
+      <div class="pgnav">
+        <button onclick="prevPage()" id="btnPrev">‹</button>
+        <span class="pgind" id="pgInd">1 / 1</span>
+        <button onclick="nextPage()" id="btnNext">›</button>
+        <button class="btn-addpg" onclick="addPage()" title="Nova página">+</button>
+      </div>
+    </div>
+
+    <!-- Content area — switches between regular and bible layout -->
+    <div id="regularArea" style="flex:1;display:flex;overflow:hidden">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="noteCanvas" class="note-canvas"></canvas>
+      </div>
+    </div>
+
+    <div id="bibleArea" class="bible-layout" style="display:none">
+      <!-- LEFT: Bible text -->
+      <div class="bible-left">
+        <div class="bible-left-hdr">
+          <h3 id="bibleChTitle">Seleciona um capítulo ↑</h3>
+        </div>
+        <div class="bible-scroll" id="bibleScroll">
+          <div class="bible-loading">Toca num capítulo acima para abrir</div>
+        </div>
+      </div>
+      <!-- RIGHT: Notes -->
+      <div class="bible-right">
+        <div class="bible-right-hdr">
+          ✏️ <span>Minhas Notas</span>
+        </div>
+        <div class="notes-canvas-wrap" id="notesCanvasWrap">
+          <canvas id="bibleCanvas" class="note-canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="pgtabs" id="pgTabs"></div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="mo" id="moNewBinder">
+  <div class="modal">
+    <h2>Novo Fichário</h2>
+    <label>Nome</label>
+    <input type="text" id="nbName" placeholder="Ex: Trabalho 2025" maxlength="40">
+    <label>Cor</label>
+    <div class="crow" id="nbColors"></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeMo('moNewBinder')">Cancelar</button>
+      <button class="btn-ok" onclick="createBinder()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="moNewSec">
+  <div class="modal">
+    <h2>Nova Secção</h2>
+    <label>Nome</label>
+    <input type="text" id="nsName" placeholder="Ex: Reuniões" maxlength="30">
+    <label>Cor</label>
+    <div class="crow" id="nsColors"></div>
+    <div class="mbtns">
+      <button class="btn-cancel" onclick="closeMo('moNewSec')">Cancelar</button>
+      <button class="btn-ok" onclick="createSection()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="moExport">
+  <div class="modal">
+    <h2>Exportar PDF</h2>
+    <div id="expProg" style="display:none" class="exp-prog"><div class="spin"></div><p id="expStatus">Aguarda…</p></div>
+    <div id="expForm">
+      <label>Páginas por secção</label>
+      <input type="text" id="expPages" value="10">
+      <label>Tipo de página</label>
+      <select id="expType">
+        <option value="lines">Linhas largas</option>
+        <option value="grid">Quadriculado</option>
+        <option value="blank">Em branco</option>
+      </select>
+      <div class="mbtns">
+        <button class="btn-cancel" onclick="closeMo('moExport')">Cancelar</button>
+        <button class="btn-ok" onclick="doExport()">Exportar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════
+//  BIBLE DATA — 66 livros NVI
+// ═══════════════════════════════════
+const BIBLE_BOOKS=[
+  {name:"Gênesis",abbr:"Gn",ch:50,t:"AT"},{name:"Êxodo",abbr:"Ex",ch:40,t:"AT"},
+  {name:"Levítico",abbr:"Lv",ch:27,t:"AT"},{name:"Números",abbr:"Nm",ch:36,t:"AT"},
+  {name:"Deuteronômio",abbr:"Dt",ch:34,t:"AT"},{name:"Josué",abbr:"Js",ch:24,t:"AT"},
+  {name:"Juízes",abbr:"Jz",ch:21,t:"AT"},{name:"Rute",abbr:"Rt",ch:4,t:"AT"},
+  {name:"1 Samuel",abbr:"1Sm",ch:31,t:"AT"},{name:"2 Samuel",abbr:"2Sm",ch:24,t:"AT"},
+  {name:"1 Reis",abbr:"1Rs",ch:22,t:"AT"},{name:"2 Reis",abbr:"2Rs",ch:25,t:"AT"},
+  {name:"1 Crônicas",abbr:"1Cr",ch:29,t:"AT"},{name:"2 Crônicas",abbr:"2Cr",ch:36,t:"AT"},
+  {name:"Esdras",abbr:"Ed",ch:10,t:"AT"},{name:"Neemias",abbr:"Ne",ch:13,t:"AT"},
+  {name:"Ester",abbr:"Et",ch:10,t:"AT"},{name:"Jó",abbr:"Jó",ch:42,t:"AT"},
+  {name:"Salmos",abbr:"Sl",ch:150,t:"AT"},{name:"Provérbios",abbr:"Pv",ch:31,t:"AT"},
+  {name:"Eclesiastes",abbr:"Ec",ch:12,t:"AT"},{name:"Cânticos",abbr:"Ct",ch:8,t:"AT"},
+  {name:"Isaías",abbr:"Is",ch:66,t:"AT"},{name:"Jeremias",abbr:"Jr",ch:52,t:"AT"},
+  {name:"Lamentações",abbr:"Lm",ch:5,t:"AT"},{name:"Ezequiel",abbr:"Ez",ch:48,t:"AT"},
+  {name:"Daniel",abbr:"Dn",ch:12,t:"AT"},{name:"Oséias",abbr:"Os",ch:14,t:"AT"},
+  {name:"Joel",abbr:"Jl",ch:3,t:"AT"},{name:"Amós",abbr:"Am",ch:9,t:"AT"},
+  {name:"Obadias",abbr:"Ob",ch:1,t:"AT"},{name:"Jonas",abbr:"Jn",ch:4,t:"AT"},
+  {name:"Miquéias",abbr:"Mq",ch:7,t:"AT"},{name:"Naum",abbr:"Na",ch:3,t:"AT"},
+  {name:"Habacuque",abbr:"Hc",ch:3,t:"AT"},{name:"Sofonias",abbr:"Sf",ch:3,t:"AT"},
+  {name:"Ageu",abbr:"Ag",ch:2,t:"AT"},{name:"Zacarias",abbr:"Zc",ch:14,t:"AT"},
+  {name:"Malaquias",abbr:"Ml",ch:4,t:"AT"},
+  {name:"Mateus",abbr:"Mt",ch:28,t:"NT"},{name:"Marcos",abbr:"Mc",ch:16,t:"NT"},
+  {name:"Lucas",abbr:"Lc",ch:24,t:"NT"},{name:"João",abbr:"Jo",ch:21,t:"NT"},
+  {name:"Atos",abbr:"At",ch:28,t:"NT"},{name:"Romanos",abbr:"Rm",ch:16,t:"NT"},
+  {name:"1 Coríntios",abbr:"1Co",ch:16,t:"NT"},{name:"2 Coríntios",abbr:"2Co",ch:13,t:"NT"},
+  {name:"Gálatas",abbr:"Gl",ch:6,t:"NT"},{name:"Efésios",abbr:"Ef",ch:6,t:"NT"},
+  {name:"Filipenses",abbr:"Fp",ch:4,t:"NT"},{name:"Colossenses",abbr:"Cl",ch:4,t:"NT"},
+  {name:"1 Tessalonicenses",abbr:"1Ts",ch:5,t:"NT"},{name:"2 Tessalonicenses",abbr:"2Ts",ch:3,t:"NT"},
+  {name:"1 Timóteo",abbr:"1Tm",ch:6,t:"NT"},{name:"2 Timóteo",abbr:"2Tm",ch:4,t:"NT"},
+  {name:"Tito",abbr:"Tt",ch:3,t:"NT"},{name:"Filemom",abbr:"Fm",ch:1,t:"NT"},
+  {name:"Hebreus",abbr:"Hb",ch:13,t:"NT"},{name:"Tiago",abbr:"Tg",ch:5,t:"NT"},
+  {name:"1 Pedro",abbr:"1Pe",ch:5,t:"NT"},{name:"2 Pedro",abbr:"2Pe",ch:3,t:"NT"},
+  {name:"1 João",abbr:"1Jo",ch:5,t:"NT"},{name:"2 João",abbr:"2Jo",ch:1,t:"NT"},
+  {name:"3 João",abbr:"3Jo",ch:1,t:"NT"},{name:"Judas",abbr:"Jd",ch:1,t:"NT"},
+  {name:"Apocalipse",abbr:"Ap",ch:22,t:"NT"},
+];
+
+// Bible JSON cache — loaded once from CDN on first request
+let BIBLE_JSON = null;
+let bibleLoading = false;
+const bibleQueue = [];
+
+// NVI JSON from thiagobodruk/bible via jsDelivr
+const BIBLE_JSON_URL = 'https://cdn.jsdelivr.net/gh/thiagobodruk/bible@master/json/pt_nvi.json';
+
+async function getBibleJSON() {
+  if (BIBLE_JSON) return BIBLE_JSON;
+  if (bibleLoading) return new Promise(r => bibleQueue.push(r));
+  bibleLoading = true;
+  try {
+    const res = await fetch(BIBLE_JSON_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    BIBLE_JSON = await res.json();
+    bibleQueue.forEach(r => r(BIBLE_JSON));
+    bibleQueue.length = 0;
+    return BIBLE_JSON;
+  } catch(e) {
+    bibleLoading = false;
+    throw e;
+  }
+}
+
+async function fetchBibleChapter(bookName, chapterNum) {
+  const data = await getBibleJSON();
+  // Structure: array of books [{name, abbr, chapters:[{chapter, verses:[{verse,text}]}]}]
+  // thiagobodruk format: [{name, abbr, chapters:[[verse1,verse2,...],...]}]
+  const bookIdx = BIBLE_BOOKS.findIndex(b => b.name === bookName);
+  if (bookIdx < 0) return null;
+  const book = data[bookIdx];
+  if (!book) return null;
+  const chapterArr = book.chapters[chapterNum - 1];
+  if (!chapterArr) return null;
+  return chapterArr; // array of verse strings
+}
+
+// ═══════════════════════════════════
+//  STATE
+// ═══════════════════════════════════
+const PALETTE=['#007AFF','#FF3B30','#FF9500','#34C759','#AF52DE','#5856D6','#FF2D55','#00C7BE','#B8860B','#1C1C1E'];
+
+let state={binders:[],currentBinderId:null,currentSectionId:null,currentPageIndex:0};
+let selBC=PALETTE[0], selSC=PALETTE[0];
+
+// Drawing
+let tool='pen', strokeColor='#1C1C1E', strokeSize=2;
+let isDrawing=false, currentPath=[];
+let AC=null,ACTX=null,ACWrap=null; // active canvas, ctx, container
+let CW=0,CH=0;
+let currentBookName=null, currentChapter=null;
+
+// ═══════════════════════════════════
+//  STORAGE
+// ═══════════════════════════════════
+const SK='ebenezer_v2';
+function save(){try{localStorage.setItem(SK,JSON.stringify(state));}catch(e){}}
+function load(){try{const r=localStorage.getItem(SK);if(r)state=JSON.parse(r);}catch(e){}}
+
+// ═══════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════
+function uid(){return Math.random().toString(36).slice(2,10)}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
+function openMo(id){document.getElementById(id).classList.add('open')}
+function closeMo(id){document.getElementById(id).classList.remove('open')}
+function goScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function getBinder(){return state.binders.find(b=>b.id===state.currentBinderId)}
+function getSec(id){return getBinder()?.sections.find(s=>s.id===(id||state.currentSectionId))}
+
+// ═══════════════════════════════════
+//  HOME
+// ═══════════════════════════════════
+function renderHome(){
+  const g=document.getElementById('bindersGrid');
+  if(!state.binders.length){g.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="icon">📓</div><p>Sem fichários ainda</p></div>`;return;}
+  g.innerHTML=state.binders.map(b=>`
+    <div class="bcard" onclick="openBinder('${b.id}')">
+      ${b.isBible?'<div class="bible-badge">BÍBLIA</div>':''}
+      <div class="bspine" style="background:${b.color}"></div>
+      <div class="bbody">
+        <button class="bdel" onclick="event.stopPropagation();deleteBinder('${b.id}')">×</button>
+        <div class="btitle">${b.name}</div>
+        <div class="bmeta">${b.sections.length} secções</div>
+        <div class="bdots">${b.sections.slice(0,6).map(s=>`<div class="bdot" style="background:${s.color}"></div>`).join('')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════
+//  BINDER CRUD
+// ═══════════════════════════════════
+function openNewBinderModal(){
+  document.getElementById('nbName').value='';
+  selBC=PALETTE[0];
+  renderCP('nbColors',()=>selBC,v=>selBC=v);
+  openMo('moNewBinder');
+  setTimeout(()=>document.getElementById('nbName').focus(),200);
+}
+
+function createBinder(){
+  const name=document.getElementById('nbName').value.trim();
+  if(!name){showToast('Dá um nome ao fichário');return;}
+  const b={id:uid(),name,color:selBC,isBible:false,sections:[
+    mkSec('Reuniões','#4A90D9'),mkSec('Projetos','#7B68EE'),mkSec('Notas','#2ECC9A')
+  ]};
+  state.binders.unshift(b);
+  save();closeMo('moNewBinder');renderHome();showToast('Fichário criado!');
+}
+
+function deleteBinder(id){
+  if(!confirm('Apagar este fichário?'))return;
+  state.binders=state.binders.filter(b=>b.id!==id);
+  save();renderHome();
+}
+
+function openBinder(id){
+  state.currentBinderId=id;
+  const b=getBinder();
+  state.currentSectionId=b.sections[0]?.id||null;
+  state.currentPageIndex=0;
+  goScreen('app');
+  document.getElementById('sbName').textContent=b.name;
+  renderSections();
+  if(state.currentSectionId) loadSection(state.currentSectionId);
+}
+
+function goHome(){goScreen('home');renderHome();}
+
+// ═══════════════════════════════════
+//  SECTION CRUD
+// ═══════════════════════════════════
+function mkSec(name,color,isBible=false,bibleBook=null){
+  return{id:uid(),name,color,isBible,bibleBook,pages:[{strokes:[],texts:[]}]};
+}
+
+function openNewSecModal(){
+  document.getElementById('nsName').value='';
+  selSC=PALETTE[Math.floor(Math.random()*PALETTE.length)];
+  renderCP('nsColors',()=>selSC,v=>selSC=v);
+  openMo('moNewSec');
+  setTimeout(()=>document.getElementById('nsName').focus(),200);
+}
+
+function createSection(){
+  const name=document.getElementById('nsName').value.trim();
+  if(!name){showToast('Dá um nome à secção');return;}
+  const s=mkSec(name,selSC);
+  getBinder().sections.push(s);
+  save();closeMo('moNewSec');renderSections();loadSection(s.id);
+  showToast(`"${name}" adicionada`);
+}
+
+function deleteSection(id){
+  const b=getBinder();
+  if(b.sections.length<=1){showToast('Precisa de pelo menos 1 secção');return;}
+  if(!confirm('Apagar esta secção?'))return;
+  b.sections=b.sections.filter(s=>s.id!==id);
+  if(state.currentSectionId===id){state.currentSectionId=b.sections[0].id;state.currentPageIndex=0;}
+  save();renderSections();loadSection(state.currentSectionId);
+}
+
+function renderSections(){
+  const b=getBinder();
+  let html='';
+  if(b.isBible){
+    const AT=b.sections.filter(s=>BIBLE_BOOKS.find(bb=>bb.name===s.bibleBook)?.t==='AT');
+    const NT=b.sections.filter(s=>BIBLE_BOOKS.find(bb=>bb.name===s.bibleBook)?.t==='NT');
+    const other=b.sections.filter(s=>!s.bibleBook);
+    if(AT.length){html+=`<div class="testament-hdr">Antigo Testamento</div>`;html+=AT.map(secHTML).join('');}
+    if(NT.length){html+=`<div class="testament-hdr">Novo Testamento</div>`;html+=NT.map(secHTML).join('');}
+    if(other.length)html+=other.map(secHTML).join('');
+  }else{
+    html=b.sections.map(secHTML).join('');
+  }
+  document.getElementById('secList').innerHTML=html;
+}
+
+function secHTML(s){
+  return`<div class="secitem ${s.id===state.currentSectionId?'active':''}" onclick="switchSec('${s.id}')">
+    <div class="secdot" style="background:${s.color}"></div>
+    <span class="secname">${s.name}</span>
+    <span class="secpg">${s.pages.length}p</span>
+    <button class="secdel" onclick="event.stopPropagation();deleteSection('${s.id}')">×</button>
+  </div>`;
+}
+
+function switchSec(id){
+  state.currentSectionId=id;state.currentPageIndex=0;currentChapter=null;
+  renderSections();loadSection(id);closeSidebar();
+}
+
+// ═══════════════════════════════════
+//  LOAD SECTION
+// ═══════════════════════════════════
+function loadSection(secId){
+  state.currentSectionId=secId;
+  state.currentPageIndex=0;
+  const sec=getSec(secId);
+  if(!sec)return;
+
+  document.getElementById('secBar').style.background=sec.color;
+  document.getElementById('noteTitle').textContent=sec.name;
+
+  const isBib=sec.isBible&&sec.bibleBook;
+
+  // Switch layout
+  document.getElementById('regularArea').style.display=isBib?'none':'flex';
+  document.getElementById('bibleArea').style.display=isBib?'flex':'none';
+
+  // Chapter bar
+  const cb=document.getElementById('chBar');
+  if(isBib){
+    currentBookName=sec.bibleBook;currentChapter=null;
+    cb.classList.add('on');
+    const book=BIBLE_BOOKS.find(b=>b.name===sec.bibleBook);
+    cb.innerHTML=Array.from({length:book.ch},(_,i)=>
+      `<button class="chbtn" onclick="loadChapter(${i+1})">${i+1}</button>`
+    ).join('');
+    document.getElementById('bibleChTitle').textContent='Seleciona um capítulo ↑';
+    document.getElementById('bibleScroll').innerHTML='<div class="bible-loading">Toca num capítulo acima para abrir</div>';
+    // init bible canvas
+    AC=document.getElementById('bibleCanvas');
+    ACTX=AC.getContext('2d');
+    ACWrap=document.getElementById('notesCanvasWrap');
+  }else{
+    cb.classList.remove('on');
+    AC=document.getElementById('noteCanvas');
+    ACTX=AC.getContext('2d');
+    ACWrap=document.getElementById('canvasWrap');
+  }
+
+  resizeAC();
+  renderPageTabs();
+  loadPage(0);
+}
+
+// ═══════════════════════════════════
+//  CHAPTER LOADING
+// ═══════════════════════════════════
+async function loadChapter(ch){
+  currentChapter=ch;
+  const sec=getSec();
+
+  document.querySelectorAll('.chbtn').forEach((b,i)=>b.classList.toggle('active',i+1===ch));
+
+  // Ensure page exists for this chapter
+  while(sec.pages.length<ch) sec.pages.push({strokes:[],texts:[],chapter:sec.pages.length+1});
+  sec.pages[ch-1].chapter=ch;
+  state.currentPageIndex=ch-1;
+  renderPageTabs();
+  updatePageUI();
+  redraw();
+
+  // Load Bible text
+  const titleEl=document.getElementById('bibleChTitle');
+  const scrollEl=document.getElementById('bibleScroll');
+  titleEl.textContent=`${sec.bibleBook}  ${ch}  —  NVI`;
+  scrollEl.innerHTML='<div class="bible-loading">A carregar…</div>';
+
+  try{
+    const verses=await fetchBibleChapter(sec.bibleBook,ch);
+    if(!verses){scrollEl.innerHTML='<div class="bible-loading">Capítulo não encontrado</div>';return;}
+    scrollEl.innerHTML=`<div class="bible-verse">${verses.map((v,i)=>`<sup>${i+1}</sup> ${v} `).join('')}</div>`;
+    scrollEl.scrollTop=0;
+  }catch(e){
+    scrollEl.innerHTML=`<div class="bible-offline">
+      📶 Sem ligação à internet.<br>
+      O texto da Bíblia NVI é carregado online.<br>
+      Verifica a tua ligação e tenta novamente.<br><br>
+      <small style="color:var(--text3)">As tuas notas estão guardadas localmente.</small>
+    </div>`;
+  }
+}
+
+// ═══════════════════════════════════
+//  PAGES
+// ═══════════════════════════════════
+function loadPage(idx){
+  state.currentPageIndex=idx;
+  const sec=getSec();
+  while(sec.pages.length<=idx) sec.pages.push({strokes:[],texts:[]});
+  // If bible and page has chapter, reload text
+  if(sec.isBible&&sec.bibleBook&&sec.pages[idx]?.chapter&&sec.pages[idx].chapter!==currentChapter){
+    loadChapter(sec.pages[idx].chapter);
+    return;
+  }
+  updatePageUI();redraw();
+}
+
+function addPage(){
+  const sec=getSec();sec.pages.push({strokes:[],texts:[]});
+  save();renderPageTabs();loadPage(sec.pages.length-1);showToast('Página adicionada');
+}
+function prevPage(){if(state.currentPageIndex>0)loadPage(state.currentPageIndex-1);}
+function nextPage(){const s=getSec();if(state.currentPageIndex<s.pages.length-1)loadPage(state.currentPageIndex+1);}
+
+function updatePageUI(){
+  const sec=getSec();const total=sec?sec.pages.length:1;const cur=state.currentPageIndex+1;
+  document.getElementById('pgInd').textContent=`${cur} / ${total}`;
+  document.getElementById('btnPrev').disabled=cur<=1;
+  document.getElementById('btnNext').disabled=cur>=total;
+  document.getElementById('noteMeta').textContent=`Pág. ${cur}/${total}`;
+  renderPageTabs();
+}
+
+function renderPageTabs(){
+  const sec=getSec();if(!sec)return;
+  document.getElementById('pgTabs').innerHTML=sec.pages.map((pg,i)=>`
+    <button class="pgtab ${i===state.currentPageIndex?'active':''}" onclick="loadPage(${i})">
+      ${sec.isBible&&pg.chapter?pg.chapter:i+1}
+    </button>
+  `).join('');
+}
+
+// ═══════════════════════════════════
+//  CANVAS
+// ═══════════════════════════════════
+function resizeAC(){
+  if(!AC||!ACWrap)return;
+  CW=ACWrap.clientWidth;CH=ACWrap.clientHeight;
+  AC.width=CW;AC.height=CH;
+  AC.style.width=CW+'px';AC.style.height=CH+'px';
+  redraw();
+}
+
+function getPos(e){const r=AC.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+
+function onDown(e){if(tool==='text'){insertText(getPos(e));return;}isDrawing=true;currentPath=[getPos(e)];}
+function onMove(e){if(!isDrawing)return;const p=getPos(e);currentPath.push(p);drawSeg(currentPath[currentPath.length-2]||currentPath[0],p);}
+function onUp(){
+  if(!isDrawing)return;isDrawing=false;
+  if(currentPath.length>0){
+    const page=getSec().pages[state.currentPageIndex];
+    page.strokes.push({path:[...currentPath],color:tool==='eraser'?'__erase__':strokeColor,size:tool==='eraser'?strokeSize*6:strokeSize,opacity:tool==='highlight'?0.35:1});
+    save();currentPath=[];redraw();
+  }
+}
+
+function drawSeg(a,b){
+  if(!ACTX)return;
+  ACTX.save();
+  if(tool==='eraser'){ACTX.globalCompositeOperation='destination-out';ACTX.lineWidth=strokeSize*6;}
+  else{ACTX.globalCompositeOperation='source-over';ACTX.globalAlpha=tool==='highlight'?0.35:1;ACTX.strokeStyle=strokeColor;ACTX.lineWidth=strokeSize;}
+  ACTX.lineCap='round';ACTX.lineJoin='round';
+  ACTX.beginPath();ACTX.moveTo(a.x,a.y);ACTX.lineTo(b.x,b.y);ACTX.stroke();
+  ACTX.restore();
+}
+
+function redraw(){
+  if(!ACTX)return;
+  ACTX.clearRect(0,0,CW,CH);
+  drawLines();
+  const sec=getSec();if(!sec)return;
+  const page=sec.pages[state.currentPageIndex];if(!page)return;
+  (page.strokes||[]).forEach(sk=>{
+    if(!sk.path?.length||sk.color==='__erase__')return;
+    ACTX.save();ACTX.globalAlpha=sk.opacity||1;ACTX.strokeStyle=sk.color;ACTX.lineWidth=sk.size;ACTX.lineCap='round';ACTX.lineJoin='round';
+    ACTX.beginPath();ACTX.moveTo(sk.path[0].x,sk.path[0].y);sk.path.forEach(p=>ACTX.lineTo(p.x,p.y));ACTX.stroke();ACTX.restore();
+  });
+  (page.texts||[]).forEach(tx=>{ACTX.save();ACTX.font=`${tx.size||16}px -apple-system,sans-serif`;ACTX.fillStyle=tx.color||'#1C1C1E';ACTX.fillText(tx.text,tx.x,tx.y);ACTX.restore();});
+}
+
+function drawLines(){
+  if(!ACTX)return;
+  const ml=36,gap=27,topY=12;
+  ACTX.strokeStyle='#FFCDD2';ACTX.lineWidth=0.7;
+  ACTX.beginPath();ACTX.moveTo(ml,0);ACTX.lineTo(ml,CH);ACTX.stroke();
+  ACTX.strokeStyle='#C8CDD8';ACTX.lineWidth=0.4;
+  let y=topY;while(y<=CH){ACTX.beginPath();ACTX.moveTo(0,y);ACTX.lineTo(CW,y);ACTX.stroke();y+=gap;}
+}
+
+function insertText(pos){const t=prompt('Texto:');if(!t)return;const pg=getSec().pages[state.currentPageIndex];if(!pg.texts)pg.texts=[];pg.texts.push({x:pos.x,y:pos.y,text:t,color:strokeColor,size:16});save();redraw();}
+function undoStroke(){const p=getSec().pages[state.currentPageIndex];if(p.strokes.length){p.strokes.pop();save();redraw();}}
+function clearPage(){if(!confirm('Limpar esta página?'))return;const p=getSec().pages[state.currentPageIndex];p.strokes=[];p.texts=[];save();redraw();}
+
+function attachEv(canvas){
+  canvas.addEventListener('mousedown',e=>onDown(e));
+  canvas.addEventListener('mousemove',e=>onMove(e));
+  canvas.addEventListener('mouseup',()=>onUp());
+  canvas.addEventListener('mouseleave',()=>onUp());
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];onDown({clientX:t.clientX,clientY:t.clientY});},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];onMove({clientX:t.clientX,clientY:t.clientY});},{passive:false});
+  canvas.addEventListener('touchend',()=>onUp());
+}
+
+function setTool(t){
+  tool=t;
+  ['Pen','Highlight','Eraser','Text'].forEach(id=>document.getElementById('tool'+id)?.classList.toggle('active',id.toLowerCase()===t));
+  if(AC)AC.classList.toggle('text-mode',t==='text');
+}
+
+function setColor(el){
+  strokeColor=el.dataset.color;
+  document.querySelectorAll('.csw').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ═══════════════════════════════════
+//  SIDEBAR MOBILE
+// ═══════════════════════════════════
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sbOverlay').classList.toggle('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sbOverlay').classList.remove('open');}
+
+// ═══════════════════════════════════
+//  COLOR PICKERS
+// ═══════════════════════════════════
+function renderCP(id,get,set){
+  const c=document.getElementById(id);
+  c.innerHTML=PALETTE.map(col=>`<div class="mcol ${col===get()?'sel':''}" style="background:${col}" onclick="pickC(this,'${col}','${id}',event)"></div>`).join('');
+  c._set=set;
+}
+function pickC(el,col,id,e){
+  e.stopPropagation();
+  document.querySelectorAll(`#${id} .mcol`).forEach(s=>s.classList.remove('sel'));
+  el.classList.add('sel');document.getElementById(id)._set(col);
+  if(id==='nbColors')selBC=col;if(id==='nsColors')selSC=col;
+}
+
+// ═══════════════════════════════════
+//  PDF EXPORT
+// ═══════════════════════════════════
+function exportPDF(){
+  document.getElementById('expForm').style.display='';
+  document.getElementById('expProg').style.display='none';
+  openMo('moExport');
+}
+
+async function doExport(){
+  const pps=parseInt(document.getElementById('expPages').value)||10;
+  const pt=document.getElementById('expType').value;
+  document.getElementById('expForm').style.display='none';
+  document.getElementById('expProg').style.display='';
+  await new Promise(r=>setTimeout(r,50));
+  try{
+    const binder=getBinder();
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+    const PW=595.28,PH=841.89,SBW=52,HDR=48,LG=28,ML=SBW+14,MR=14,MB=20;
+    const h2r=h=>{const r=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);return r?[parseInt(r[1],16),parseInt(r[2],16),parseInt(r[3],16)]:[0,0,0]};
+
+    const spm={};let pn=3;
+    binder.sections.forEach((sec,si)=>{
+      spm[si]=pn;
+      const cnt=sec.isBible&&sec.bibleBook?BIBLE_BOOKS.find(b=>b.name===sec.bibleBook)?.ch||pps:pps;
+      pn+=1+cnt;
+    });
+
+    function drawSB(doc,ci){
+      doc.setFillColor(242,242,247);doc.rect(0,0,SBW,PH,'F');
+      doc.setDrawColor(209,209,214);doc.setLineWidth(0.5);doc.line(SBW,0,SBW,PH);
+      const n=binder.sections.length,th=Math.min(44,(PH*.7)/n),tg=3;
+      const sy=PH/2-(n*th+(n-1)*tg)/2+th;
+      binder.sections.forEach((sec,i)=>{
+        const ty=sy+i*(th+tg);const[r,g,b]=h2r(sec.color);
+        if(i===ci){doc.setFillColor(Math.min(255,r+180),Math.min(255,g+180),Math.min(255,b+180));doc.roundedRect(4,ty-th,SBW-8,th-2,5,5,'F');}
+        doc.setFillColor(r,g,b);doc.circle(SBW/2,ty-th/2+5,4.5,'F');
+        doc.setFontSize(5.5);doc.setTextColor(r,g,b);doc.text(sec.name.substring(0,5),SBW/2,ty-th/2-5,{align:'center'});
+        doc.link(0,ty-th,SBW,th,{pageNumber:spm[i]});
+      });
+    }
+
+    function drawHdr(doc,sec,pgNum,tot){
+      const[r,g,b]=h2r(sec.color);
+      doc.setFillColor(255,255,255);doc.rect(SBW,0,PW-SBW,HDR,'F');
+      doc.setDrawColor(209,209,214);doc.setLineWidth(0.5);doc.line(SBW,HDR,PW,HDR);
+      doc.setFillColor(r,g,b);doc.rect(SBW,0,3,HDR,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(28,28,30);
+      doc.text(pgNum?`${sec.name}  ·  Cap. ${pgNum}`:sec.name,SBW+12,30);
+      if(pgNum){doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(174,174,178);doc.text(`${pgNum}/${tot}`,PW-MR,30,{align:'right'});}
+      doc.setFontSize(8);doc.setTextColor(174,174,178);doc.text('Data: _____ / _____ / _________',SBW+12,42);
+    }
+
+    function drawPageLines(doc){
+      if(pt==='blank')return;
+      if(pt==='lines'){
+        doc.setDrawColor(255,205,210);doc.setLineWidth(0.6);doc.line(ML+22,HDR,ML+22,PH-MB);
+        doc.setDrawColor(200,205,216);doc.setLineWidth(0.4);let y=HDR+8;while(y<=PH-MB){doc.line(ML,y,PW-MR,y);y+=LG;}
+      }else{
+        doc.setDrawColor(200,205,216);doc.setLineWidth(0.3);const gs=14;
+        for(let x=ML;x<=PW-MR;x+=gs)doc.line(x,HDR,x,PH-MB);
+        for(let y=HDR;y<=PH-MB;y+=gs)doc.line(ML,y,PW-MR,y);
+      }
+    }
+
+    // COVER
+    document.getElementById('expStatus').textContent='Capa…';await new Promise(r=>setTimeout(r,20));
+    const[br,bg_c,bb]=h2r(binder.color);
+    doc.setFillColor(20,20,24);doc.rect(0,0,PW,PH,'F');
+    doc.setFillColor(br,bg_c,bb);doc.circle(PW/2,PH/2,78,'F');
+    doc.setFillColor(20,20,24);doc.circle(PW/2,PH/2,60,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(30);doc.setTextColor(255,255,255);
+    doc.text(binder.name,PW/2,PH/2-14,{align:'center'});
+    if(binder.isBible){doc.setFontSize(10);doc.setTextColor(184,134,11);doc.text('BÍBLIA SAGRADA — NVI',PW/2,PH/2+8,{align:'center'});}
+    const dsp=16;let dx=PW/2-binder.sections.length*dsp/2+8;
+    binder.sections.forEach(sec=>{const[r,g,b]=h2r(sec.color);doc.setFillColor(r,g,b);doc.circle(dx,PH/2+42,5,'F');dx+=dsp;});
+    const pw2=70,ph2=18;const tw2=binder.sections.length*(pw2+5)-5;let px2=PW/2-tw2/2;
+    binder.sections.forEach((sec,i)=>{
+      const[r,g,b]=h2r(sec.color);doc.setFillColor(r,g,b);doc.roundedRect(px2,PH-64,pw2,ph2,9,9,'F');
+      doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+      doc.text(sec.name.substring(0,8),px2+pw2/2,PH-52,{align:'center'});
+      doc.link(px2,PH-64,pw2,ph2,{pageNumber:spm[i]});px2+=pw2+5;
+    });
+    doc.setFontSize(8);doc.setTextColor(60,60,65);doc.text('Ebenezer Notes  ·  A4  ·  Portrait',PW/2,PH-14,{align:'center'});
+
+    // INDEX
+    document.getElementById('expStatus').textContent='Índice…';await new Promise(r=>setTimeout(r,20));
+    doc.addPage();doc.setFillColor(255,255,255);doc.rect(0,0,PW,PH,'F');
+    drawSB(doc,-1);
+    doc.setFillColor(255,255,255);doc.rect(SBW,0,PW-SBW,HDR,'F');
+    doc.setDrawColor(209,209,214);doc.setLineWidth(0.5);doc.line(SBW,HDR,PW,HDR);
+    doc.setFillColor(0,122,255);doc.rect(SBW,0,3,HDR,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(15);doc.setTextColor(28,28,30);doc.text('Índice',SBW+12,32);
+    const rH=50,rG=7,rml=SBW+12,rcw=PW-rml-12;let ry=HDR+18+rH;
+    binder.sections.forEach((sec,i)=>{
+      const[r,g,b]=h2r(sec.color);
+      doc.setFillColor(Math.min(255,r+190),Math.min(255,g+190),Math.min(255,b+190));doc.roundedRect(rml,ry-rH,rcw,rH,8,8,'F');
+      doc.setFillColor(r,g,b);doc.roundedRect(rml,ry-rH,4,rH,2,2,'F');doc.circle(rml+20,ry-rH/2,6,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(28,28,30);doc.text(sec.name,rml+34,ry-rH/2+4);
+      const bi=sec.bibleBook?BIBLE_BOOKS.find(b=>b.name===sec.bibleBook):null;
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(174,174,178);
+      doc.text(bi?`${bi.ch} capítulos`:`${pps} páginas`,rml+34,ry-rH/2+16);
+      doc.setTextColor(r,g,b);doc.setFontSize(11);doc.text('→',rml+rcw-12,ry-rH/2+4);
+      doc.link(rml,ry-rH,rcw,rH,{pageNumber:spm[i]});ry+=rH+rG;
+    });
+
+    // SECTIONS
+    for(let si=0;si<binder.sections.length;si++){
+      const sec=binder.sections[si];
+      document.getElementById('expStatus').textContent=`${sec.name}…`;await new Promise(r=>setTimeout(r,10));
+      const[r,g,b]=h2r(sec.color);
+      const isBib=sec.isBible&&sec.bibleBook;
+      const book=isBib?BIBLE_BOOKS.find(b=>b.name===sec.bibleBook):null;
+      const chapCount=isBib?book.ch:pps;
+
+      // Divider
+      doc.addPage();
+      doc.setFillColor(Math.min(255,r+190),Math.min(255,g+190),Math.min(255,b+190));doc.rect(0,0,PW,PH,'F');
+      drawSB(doc,si);drawHdr(doc,sec,null,null);
+      doc.setFillColor(r,g,b);doc.circle(SBW+(PW-SBW)/2,PH/2,60,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(40);doc.setTextColor(255,255,255);
+      doc.text(sec.name[0],SBW+(PW-SBW)/2,PH/2+14,{align:'center'});
+      doc.setFontSize(24);doc.setTextColor(28,28,30);doc.text(sec.name,SBW+(PW-SBW)/2,PH/2+86,{align:'center'});
+      if(isBib){
+        doc.setFontSize(9);doc.setTextColor(r,g,b);doc.text(`${chapCount} capítulos — NVI`,SBW+(PW-SBW)/2,PH/2+104,{align:'center'});
+        // Chapter buttons with GoTo links
+        const cBW=24,cBH=17,cCols=15,cPad=3;
+        const cStartX=SBW+18;let cx=cStartX,cy=PH/2+128;
+        for(let c=1;c<=Math.min(chapCount,60);c++){
+          doc.setFillColor(r,g,b);doc.roundedRect(cx,cy,cBW,cBH,3,3,'F');
+          doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(255,255,255);
+          doc.text(String(c),cx+cBW/2,cy+cBH/2+2.5,{align:'center'});
+          doc.link(cx,cy,cBW,cBH,{pageNumber:spm[si]+c});
+          cx+=cBW+cPad;if(c%cCols===0){cy+=cBH+4;cx=cStartX;}
+        }
+        if(chapCount>60){doc.setFontSize(8);doc.setTextColor(99,99,102);doc.text(`+ ${chapCount-60} capítulos…`,cStartX,cy+cBH+4);}
+      }
+
+      // Note pages
+      for(let p=0;p<chapCount;p++){
+        doc.addPage();
+        doc.setFillColor(255,255,255);doc.rect(0,0,PW,PH,'F');
+        drawSB(doc,si);
+
+        if(isBib){
+          // Bible LEFT / Notes RIGHT (landscape split within portrait page)
+          drawHdr(doc,sec,p+1,chapCount);
+          const midX=SBW+(PW-SBW)/2;
+          // Left: gold bg
+          doc.setFillColor(255,248,231);doc.rect(SBW,HDR,midX-SBW,PH-HDR,'F');
+          doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(184,134,11);
+          doc.text(`${sec.bibleBook}  ${p+1}  —  NVI`,SBW+8,HDR+13);
+          // Vertical divider
+          doc.setDrawColor(212,175,55);doc.setLineWidth(1.2);doc.line(midX,HDR,midX,PH);
+          // Right: notes label + lines
+          doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(99,99,102);
+          doc.text('Minhas Notas ✏',midX+8,HDR+13);
+          // Lines on right half
+          doc.setDrawColor(255,205,210);doc.setLineWidth(0.6);doc.line(midX+30,HDR+18,midX+30,PH-MB);
+          doc.setDrawColor(200,205,216);doc.setLineWidth(0.4);
+          let y=HDR+22;while(y<=PH-MB){doc.line(midX+8,y,PW-MR,y);y+=LG;}
+        }else{
+          drawHdr(doc,sec,p+1,chapCount);drawPageLines(doc);
+        }
+      }
+    }
+
+    const fn=`${binder.name.replace(/\s+/g,'_')}.pdf`;
+    doc.save(fn);closeMo('moExport');showToast('PDF exportado com GoTo links! ✓');
+  }catch(err){
+    console.error(err);
+    document.getElementById('expStatus').textContent='Erro: '+err.message;
+  }
+}
+
+// ═══════════════════════════════════
+//  BIBLE BINDER FACTORY
+// ═══════════════════════════════════
+function createBibleBinder(){
+  const cols=['#8B7355','#A0522D','#6B8E23','#4682B4','#8B4513','#2E8B57','#6A5ACD','#CD853F','#20B2AA','#DC143C'];
+  const sections=BIBLE_BOOKS.map((book,i)=>mkSec(book.name,cols[i%cols.length],true,book.name));
+  state.binders.push({id:uid(),name:'Bíblia',color:'#B8860B',isBible:true,sections});
+  save();showToast('Fichário Bíblia criado! 📖');
+}
+
+// ═══════════════════════════════════
+//  INIT
+// ═══════════════════════════════════
+load();
+
+// Migrate from old storage key
+try{
+  const old=localStorage.getItem('ebenezer_v1');
+  if(old&&!localStorage.getItem(SK)){
+    const oldState=JSON.parse(old);
+    state.binders=[...state.binders,...oldState.binders.filter(b=>!b.isBible)];
+    save();
+  }
+}catch(e){}
+
+if(!state.binders.some(b=>b.isBible)) createBibleBinder();
+renderHome();
+
+attachEv(document.getElementById('noteCanvas'));
+attachEv(document.getElementById('bibleCanvas'));
+
+new ResizeObserver(()=>{if(AC&&ACWrap)resizeAC();}).observe(document.getElementById('app'));
+
+document.getElementById('nbName').addEventListener('keydown',e=>{if(e.key==='Enter')createBinder();});
+document.getElementById('nsName').addEventListener('keydown',e=>{if(e.key==='Enter')createSection();});
+document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+</script>
+</body>
+</html>
