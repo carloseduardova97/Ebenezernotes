@@ -711,22 +711,45 @@ function resizeAC(){
 
 function getPos(e){const r=AC.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 
-function onDown(e){if(tool==='text'){insertText(getPos(e));return;}isDrawing=true;currentPath=[getPos(e)];}
-function onMove(e){if(!isDrawing)return;const p=getPos(e);currentPath.push(p);drawSeg(currentPath[currentPath.length-2]||currentPath[0],p);}
+// ── RAF throttle for smooth drawing ──
+let rafPending=false;
+function scheduleRedraw(){if(rafPending)return;rafPending=true;requestAnimationFrame(()=>{rafPending=false;redraw();});}
+
+function onDown(e){
+  // Apple Pencil fix: ignore hover (pointerType==='pen' with pressure=0 means hovering)
+  if(e.pointerType==='pen'&&e.pressure===0)return;
+  if(tool==='text'){insertText(getPos(e));return;}
+  isDrawing=true;currentPath=[getPos(e)];
+}
+function onMove(e){
+  if(e.pointerType==='pen'&&e.pressure===0)return; // ignore hover
+  if(!isDrawing)return;
+  const p=getPos(e);currentPath.push(p);
+  // live draw segment for responsiveness
+  liveDrawSeg(currentPath[currentPath.length-2]||currentPath[0],p);
+}
 function onUp(){
   if(!isDrawing)return;isDrawing=false;
   if(currentPath.length>0){
     const page=getSec().pages[state.currentPageIndex];
-    page.strokes.push({path:[...currentPath],color:tool==='eraser'?'__erase__':strokeColor,size:tool==='eraser'?strokeSize*6:strokeSize,opacity:tool==='highlight'?0.35:1});
+    page.strokes.push({
+      path:[...currentPath],
+      color:strokeColor,
+      size:tool==='eraser'?strokeSize*8:strokeSize,
+      opacity:tool==='highlight'?0.35:1,
+      eraser:tool==='eraser',
+    });
     save();currentPath=[];redraw();
   }
 }
 
-function drawSeg(a,b){
+// Live segment drawn directly on canvas during stroke (fast)
+function liveDrawSeg(a,b){
   if(!ACTX)return;
   ACTX.save();
-  if(tool==='eraser'){ACTX.globalCompositeOperation='destination-out';ACTX.lineWidth=strokeSize*6;}
-  else{ACTX.globalCompositeOperation='source-over';ACTX.globalAlpha=tool==='highlight'?0.35:1;ACTX.strokeStyle=strokeColor;ACTX.lineWidth=strokeSize;}
+  ACTX.strokeStyle=strokeColor;
+  ACTX.lineWidth=tool==='eraser'?strokeSize*8:strokeSize;
+  ACTX.globalAlpha=tool==='highlight'?0.35:1;
   ACTX.lineCap='round';ACTX.lineJoin='round';
   ACTX.beginPath();ACTX.moveTo(a.x,a.y);ACTX.lineTo(b.x,b.y);ACTX.stroke();
   ACTX.restore();
@@ -738,11 +761,22 @@ function redraw(){
   drawLines();
   const sec=getSec();if(!sec)return;
   const page=sec.pages[state.currentPageIndex];if(!page)return;
+
+  // Draw all strokes; eraser strokes erase by redrawing white over path
   (page.strokes||[]).forEach(sk=>{
-    if(!sk.path?.length||sk.color==='__erase__')return;
-    ACTX.save();ACTX.globalAlpha=sk.opacity||1;ACTX.strokeStyle=sk.color;ACTX.lineWidth=sk.size;ACTX.lineCap='round';ACTX.lineJoin='round';
-    ACTX.beginPath();ACTX.moveTo(sk.path[0].x,sk.path[0].y);sk.path.forEach(p=>ACTX.lineTo(p.x,p.y));ACTX.stroke();ACTX.restore();
+    if(!sk.path?.length)return;
+    ACTX.save();
+    ACTX.lineCap='round';ACTX.lineJoin='round';ACTX.lineWidth=sk.size;
+    if(sk.eraser){
+      // Eraser: draw thick white line (works on any background)
+      ACTX.strokeStyle='#FFFFFF';ACTX.globalAlpha=1;
+    }else{
+      ACTX.strokeStyle=sk.color;ACTX.globalAlpha=sk.opacity||1;
+    }
+    ACTX.beginPath();ACTX.moveTo(sk.path[0].x,sk.path[0].y);
+    sk.path.forEach(p=>ACTX.lineTo(p.x,p.y));ACTX.stroke();ACTX.restore();
   });
+
   (page.texts||[]).forEach(tx=>{ACTX.save();ACTX.font=`${tx.size||16}px -apple-system,sans-serif`;ACTX.fillStyle=tx.color||'#1C1C1E';ACTX.fillText(tx.text,tx.x,tx.y);ACTX.restore();});
 }
 
@@ -760,13 +794,11 @@ function undoStroke(){const p=getSec().pages[state.currentPageIndex];if(p.stroke
 function clearPage(){if(!confirm('Limpar esta página?'))return;const p=getSec().pages[state.currentPageIndex];p.strokes=[];p.texts=[];save();redraw();}
 
 function attachEv(canvas){
-  canvas.addEventListener('mousedown',e=>onDown(e));
-  canvas.addEventListener('mousemove',e=>onMove(e));
-  canvas.addEventListener('mouseup',()=>onUp());
-  canvas.addEventListener('mouseleave',()=>onUp());
-  canvas.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];onDown({clientX:t.clientX,clientY:t.clientY});},{passive:false});
-  canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];onMove({clientX:t.clientX,clientY:t.clientY});},{passive:false});
-  canvas.addEventListener('touchend',()=>onUp());
+  canvas.style.touchAction='none';
+  canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);onDown(e);});
+  canvas.addEventListener('pointermove',e=>onMove(e));
+  canvas.addEventListener('pointerup',  ()=>onUp());
+  canvas.addEventListener('pointercancel',()=>onUp());
 }
 
 function setTool(t){
